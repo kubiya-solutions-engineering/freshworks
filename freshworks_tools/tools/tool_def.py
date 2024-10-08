@@ -48,5 +48,4 @@ python /tmp/grafana.py --grafana_dashboard_url "$grafana_dashboard_url" --alert_
 )
 
 # Register the updated tool
-tool_registry.register("freshworks", old_tool)
 tool_registry.register("freshworks", get_grafana_image_and_send_slack_thread)

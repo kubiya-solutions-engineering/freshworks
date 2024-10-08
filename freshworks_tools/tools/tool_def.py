@@ -1,0 +1,52 @@
+from kubiya_sdk.tools import Arg, FileSpec
+from .base import FreshworksTool
+from kubiya_sdk.tools.registry import tool_registry
+import inspect
+
+from . import grafana
+
+get_grafana_image_and_send_slack_thread = FreshworksTool(
+    name="get_grafana_image_and_send_slack_thread",
+    description="Generate render URLs for relevant Grafana dashboard panels, download images, analyze them using OpenAI's vision model, and send results to the current Slack thread",
+    type="docker",
+    image="python:3.11-bullseye",
+    content="""
+pip install requests slack_sdk litellm > /dev/null 2>&1
+
+python /tmp/grafana.py --grafana_dashboard_url "$grafana_dashboard_url" --alert_subject "$alert_subject"
+""",
+    secrets=[
+        "SLACK_API_TOKEN", 
+        "GRAFANA_API_KEY", 
+        "OPENAI_API_KEY"
+    ],
+    env=[
+        "SLACK_THREAD_TS", 
+        "SLACK_CHANNEL_ID", 
+        "OPENAI_API_BASE"
+    ],
+    args=[
+        Arg(
+            name="grafana_dashboard_url",
+            type="str",
+            description="URL of the Grafana dashboard",
+            required=True
+        ),
+        Arg(
+            name="alert_subject",
+            type="str",
+            description="Subject of the alert, used to filter relevant panels",
+            required=True
+        )
+    ],
+    with_files=[
+        FileSpec(
+            destination="/tmp/grafana.py",
+            source=inspect.getsource(grafana)
+        )
+    ]
+)
+
+# Register the updated tool
+tool_registry.register("freshworks", old_tool)
+tool_registry.register("freshworks", get_grafana_image_and_send_slack_thread)

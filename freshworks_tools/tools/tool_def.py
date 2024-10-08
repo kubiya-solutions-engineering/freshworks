@@ -1,11 +1,11 @@
-from kubiya_sdk.tools import Arg, FileSpec
-from .base import FreshworksTool
-from kubiya_sdk.tools.registry import tool_registry
 import inspect
+
+from kubiya_sdk import tool_registry
+from kubiya_sdk.tools.models import Arg, Tool, FileSpec
 
 from . import grafana
 
-get_grafana_image_and_send_slack_thread = FreshworksTool(
+get_grafana_image_and_send_slack_thread = Tool(
     name="get_grafana_image_and_send_slack_thread",
     description="Generate render URLs for relevant Grafana dashboard panels, download images, analyze them using OpenAI's vision model, and send results to the current Slack thread",
     type="docker",

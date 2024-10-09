@@ -18,12 +18,12 @@ python /tmp/grafana.py --grafana_dashboard_url "$grafana_dashboard_url" --alert_
     secrets=[
         "SLACK_API_TOKEN", 
         "GRAFANA_API_KEY", 
-        "OPENAI_API_KEY"
+        "OPENAI_API_KEY",
+        "OPENAI_API_BASE"
     ],
     env=[
         "SLACK_THREAD_TS", 
-        "SLACK_CHANNEL_ID", 
-        "OPENAI_API_BASE"
+        "SLACK_CHANNEL_ID"
     ],
     args=[
         Arg(

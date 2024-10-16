@@ -135,50 +135,54 @@ def analyze_image_with_vision_model(image_path):
         print(f"Failed to get content from response: {e}")
         return "Unable to analyze the image due to an error."
 
-# Access environment variables
-grafana_dashboard_url = os.environ.get("GRAFANA_URL")
-thread_ts = os.environ.get("SLACK_THREAD_TS")
-channel_id = os.environ.get("SLACK_CHANNEL_ID")
-slack_token = os.environ.get("SLACK_API_TOKEN")
-grafana_api_key = os.environ.get("GRAFANA_API_KEY")
-subject = os.environ.get("ALERT_SUBJECT", "")
+def main():
+    # Access environment variables
+    grafana_dashboard_url = os.environ.get("GRAFANA_URL")
+    thread_ts = os.environ.get("SLACK_THREAD_TS")
+    channel_id = os.environ.get("SLACK_CHANNEL_ID")
+    slack_token = os.environ.get("SLACK_API_TOKEN")
+    grafana_api_key = os.environ.get("GRAFANA_API_KEY")
+    subject = os.environ.get("ALERT_SUBJECT", "")
 
-# Generate Grafana API URL
-api_url, org_id = generate_grafana_api_url(grafana_dashboard_url)
-print(f"Generated Grafana API URL: {api_url}")
+    # Generate Grafana API URL
+    api_url, org_id = generate_grafana_api_url(grafana_dashboard_url)
+    print(f"Generated Grafana API URL: {api_url}")
 
-# Get all panels from the dashboard
-all_panels = get_dashboard_panels(api_url, grafana_api_key)
+    # Get all panels from the dashboard
+    all_panels = get_dashboard_panels(api_url, grafana_api_key)
 
-# Filter panels based on the subject
-filtered_panels = filter_panels_by_subject(all_panels, subject)
+    # Filter panels based on the subject
+    filtered_panels = filter_panels_by_subject(all_panels, subject)
 
-if not filtered_panels:
-    print(f"No panels found matching the subject: {subject}")
-else:
-    for panel in filtered_panels:
-        # Generate Grafana render URL for each panel
-        render_url = generate_grafana_render_url(grafana_dashboard_url, org_id, panel['id'])
-        print(f"Generated Grafana render URL for panel {panel['id']}: {render_url}")
+    if not filtered_panels:
+        print(f"No panels found matching the subject: {subject}")
+    else:
+        for panel in filtered_panels:
+            # Generate Grafana render URL for each panel
+            render_url = generate_grafana_render_url(grafana_dashboard_url, org_id, panel['id'])
+            print(f"Generated Grafana render URL for panel {panel['id']}: {render_url}")
 
-        # Download Grafana image
-        image_path = download_grafana_image(render_url, grafana_api_key, panel['id'])
+            # Download Grafana image
+            image_path = download_grafana_image(render_url, grafana_api_key, panel['id'])
 
-        # Analyze the image using the vision model
-        analysis_result = analyze_image_with_vision_model(image_path)
+            # Analyze the image using the vision model
+            analysis_result = analyze_image_with_vision_model(image_path)
 
-        # Send image to Slack thread
-        initial_comment = (f"Grafana dashboard image for panel '{panel['title']}' from: {grafana_dashboard_url}\n\n"
-                           f"Analysis:\n{analysis_result}")
-        slack_response = send_slack_file_to_thread(slack_token, channel_id, thread_ts, image_path, initial_comment)
+            # Send image to Slack thread
+            initial_comment = (f"Grafana dashboard image for panel '{panel['title']}' from: {grafana_dashboard_url}\n\n"
+                               f"Analysis:\n{analysis_result}")
+            slack_response = send_slack_file_to_thread(slack_token, channel_id, thread_ts, image_path, initial_comment)
 
-        # Extract relevant information from the Slack response
-        response_info = extract_slack_response_info(slack_response)
-        print(f"Slack response for panel {panel['id']}:")
-        print(json.dumps(response_info, indent=2))
+            # Extract relevant information from the Slack response
+            response_info = extract_slack_response_info(slack_response)
+            print(f"Slack response for panel {panel['id']}:")
+            print(json.dumps(response_info, indent=2))
 
-        # Clean up the downloaded image
-        os.remove(image_path)
-        print(f"Temporary image file removed for panel {panel['id']}")
+            # Clean up the downloaded image
+            os.remove(image_path)
+            print(f"Temporary image file removed for panel {panel['id']}")
 
-print("Processing complete")
+    print("Processing complete")
+
+if __name__ == "__main__":
+    main()

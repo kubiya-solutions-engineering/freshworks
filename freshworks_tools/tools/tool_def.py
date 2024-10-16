@@ -5,8 +5,8 @@ import inspect
 from kubiya_sdk import tool_registry
 from kubiya_sdk.tools.models import Arg, Tool, FileSpec
 
-get_grafana_image_and_send_slack_thread = Tool(
-    name="get_grafana_image_and_send_slack_thread",
+analyze_grafana_panel = Tool(
+    name="analyze_grafana_panel",
     description="Generate render URLs for relevant Grafana dashboard panels, download images, analyze them using OpenAI's vision model, and send results to the current Slack thread",
     type="docker",
     image="python:3.11-bullseye",
@@ -43,9 +43,9 @@ python /tmp/grafana.py --grafana_dashboard_url "$grafana_dashboard_url" --alert_
         FileSpec(
             destination="/tmp/grafana.py",
             source=inspect.getsource(grafana),
-        ),
-    ],
+        )
+    ]
 )
 
 # Register the updated tool
-tool_registry.register("freshworks", get_grafana_image_and_send_slack_thread)
+tool_registry.register("freshworks", analyze_grafana_panel)

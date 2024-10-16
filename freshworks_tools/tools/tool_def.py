@@ -13,6 +13,9 @@ analyze_grafana_panel = Tool(
     content="""
 pip install slack_sdk requests==2.32.3 litellm==1.49.5 pillow==11.0.0 > /dev/null 2>&1
 
+export GRAFANA_DASHBOARD_URL="$grafana_dashboard_url"
+export ALERT_SUBJECT="$alert_subject"
+
 curl -o /tmp/grafana.py https://analyze-panel-grafana.s3.eu-west-1.amazonaws.com/grafana.py
 
 python /tmp/grafana.py --grafana_dashboard_url "$grafana_dashboard_url" --alert_subject "$alert_subject"

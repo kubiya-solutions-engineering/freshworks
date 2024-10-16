@@ -9,7 +9,7 @@ analyze_grafana_panel = Tool(
     name="analyze_grafana_panel",
     description="Generate render URLs for relevant Grafana dashboard panels, download images, analyze them using OpenAI's vision model, and send results to the current Slack thread",
     type="docker",
-    image="python:3.11-bullseye",
+    image="python:3.12",
     content="""
 pip install slack_sdk requests==2.32.3 litellm==1.49.5 pillow==11.0.0 > /dev/null 2>&1
 

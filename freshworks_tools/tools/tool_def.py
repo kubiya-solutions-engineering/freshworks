@@ -1,9 +1,9 @@
+from . import grafana
+
 import inspect
 
 from kubiya_sdk import tool_registry
 from kubiya_sdk.tools.models import Arg, Tool, FileSpec
-
-from . import grafana
 
 get_grafana_image_and_send_slack_thread = Tool(
     name="get_grafana_image_and_send_slack_thread",
@@ -42,9 +42,9 @@ python /tmp/grafana.py --grafana_dashboard_url "$grafana_dashboard_url" --alert_
     with_files=[
         FileSpec(
             destination="/tmp/grafana.py",
-            source=inspect.getsource(grafana)
-        )
-    ]
+            source=inspect.getsource(grafana),
+        ),
+    ],
 )
 
 # Register the updated tool

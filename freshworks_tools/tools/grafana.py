@@ -1,12 +1,12 @@
 import os
-import requests
+import requests # type: ignore
 from urllib.parse import urlparse, parse_qs
-from slack_sdk import WebClient
-from slack_sdk.errors import SlackApiError
+from slack_sdk import WebClient # type: ignore
+from slack_sdk.errors import SlackApiError # type: ignore
 import json
-from litellm import completion
+from litellm import completion # type: ignore
 import base64
-from PIL import Image
+from PIL import Image # type: ignore
 
 def generate_grafana_api_url(grafana_dashboard_url):
     print(f"Received Grafana URL: {grafana_dashboard_url}")

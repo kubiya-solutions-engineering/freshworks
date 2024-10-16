@@ -42,7 +42,7 @@ python /tmp/grafana.py --grafana_dashboard_url "$grafana_dashboard_url" --alert_
     with_files=[
         FileSpec(
             destination="/tmp/grafana.py",
-            source=inspect.getsource(grafana),
+            source=inspect.getsource(grafana)
         )
     ]
 )

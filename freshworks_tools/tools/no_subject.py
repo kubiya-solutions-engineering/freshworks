@@ -8,7 +8,7 @@ from litellm import completion
 import base64
 from PIL import Image
 
-def generate_grafana_api_url(grafana_dashboard_url):
+def generate_grafana_render_url(grafana_dashboard_url):
     print(f"Received Grafana URL: {grafana_dashboard_url}")
     parsed_url = urlparse(grafana_dashboard_url)
     path_parts = parsed_url.path.strip("/").split("/")
@@ -16,49 +16,27 @@ def generate_grafana_api_url(grafana_dashboard_url):
     try:
         if len(path_parts) >= 3 and path_parts[0] == "d":
             dashboard_uid = path_parts[1]
+            dashboard_slug = path_parts[2]
         else:
             raise ValueError("URL path does not have the expected format /d/{uid}/{slug}")
 
         query_params = parse_qs(parsed_url.query)
         org_id = query_params.get("orgId", ["1"])[0]
 
-        api_url = f"{parsed_url.scheme}://{parsed_url.netloc}/api/dashboards/uid/{dashboard_uid}"
-        return api_url, org_id
+        render_url = f"{parsed_url.scheme}://{parsed_url.netloc}/render/d/{dashboard_uid}/{dashboard_slug}?orgId={org_id}&from=now-1h&to=now&width=1000&height=500"
+        return render_url, org_id
     except (IndexError, ValueError) as e:
         print(f"Invalid Grafana dashboard URL: {str(e)}")
         raise
 
-def get_dashboard_panels(api_url, api_key):
-    headers = {"Authorization": f"Bearer {api_key}"}
-    response = requests.get(api_url, headers=headers)
-    if response.status_code == 200:
-        dashboard_data = response.json()
-        panels = dashboard_data['dashboard']['panels']
-        return [{'id': panel['id'], 'title': panel['title']} for panel in panels]
-    else:
-        print(f"Failed to fetch dashboard data. Status code: {response.status_code}")
-        raise Exception("Failed to fetch dashboard data")
-
-def filter_panels_by_subject(panels, subject):
-    return [panel for panel in panels if subject.lower() in panel['title'].lower()]
-
-def generate_grafana_render_url(grafana_dashboard_url, org_id, panel_id):
-    parsed_url = urlparse(grafana_dashboard_url)
-    path_parts = parsed_url.path.strip("/").split("/")
-    dashboard_uid = path_parts[1]
-    dashboard_slug = path_parts[2]
-
-    render_url = f"{parsed_url.scheme}://{parsed_url.netloc}/render/d-solo/{dashboard_uid}/{dashboard_slug}?orgId={org_id}&from=now-1h&to=now&panelId={panel_id}&width=1000&height=500"
-    return render_url
-
-def download_grafana_image(render_url, api_key, panel_id):
+def download_grafana_image(render_url, api_key):
     headers = {"Authorization": f"Bearer {api_key}"}
     response = requests.get(render_url, headers=headers)
     if response.status_code == 200:
-        filename = f"grafana_panel_{panel_id}.png"
+        filename = "grafana_dashboard.png"
         with open(filename, "wb") as f:
             f.write(response.content)
-        print(f"Grafana panel image downloaded successfully: {filename}")
+        print(f"Grafana dashboard image downloaded successfully: {filename}")
         return filename
     else:
         print(f"Failed to download Grafana image. Status code: {response.status_code}")
@@ -114,7 +92,7 @@ def analyze_image_with_vision_model(image_path):
                 {
                     "role": "user",
                     "content": [
-                        {"type": "text", "text": "Analyze this Grafana panel image. Identify any abnormalities or significant spikes in the data. Provide a brief summary of your observations."},
+                        {"type": "text", "text": "Analyze this Grafana dashboard image. Identify any abnormalities or significant patterns in the data. Provide a brief summary of your observations."},
                         {
                             "type": "image_url",
                             "image_url": {
@@ -142,45 +120,30 @@ def main():
     channel_id = os.environ.get("SLACK_CHANNEL_ID")
     slack_token = os.environ.get("SLACK_API_TOKEN")
     grafana_api_key = os.environ.get("GRAFANA_API_KEY")
-    subject = os.environ.get("ALERT_SUBJECT", "")
 
-    # Generate Grafana API URL
-    api_url, org_id = generate_grafana_api_url(grafana_dashboard_url)
-    print(f"Generated Grafana API URL: {api_url}")
+    # Generate Grafana render URL
+    render_url, org_id = generate_grafana_render_url(grafana_dashboard_url)
+    print(f"Generated Grafana render URL: {render_url}")
 
-    # Get all panels from the dashboard
-    all_panels = get_dashboard_panels(api_url, grafana_api_key)
+    # Download Grafana image
+    image_path = download_grafana_image(render_url, grafana_api_key)
 
-    # Filter panels based on the subject
-    filtered_panels = filter_panels_by_subject(all_panels, subject)
+    # Analyze the image using the vision model
+    analysis_result = analyze_image_with_vision_model(image_path)
 
-    if not filtered_panels:
-        print(f"No panels found matching the subject: {subject}")
-    else:
-        for panel in filtered_panels:
-            # Generate Grafana render URL for each panel
-            render_url = generate_grafana_render_url(grafana_dashboard_url, org_id, panel['id'])
-            print(f"Generated Grafana render URL for panel {panel['id']}: {render_url}")
+    # Send image to Slack thread
+    initial_comment = (f"Grafana dashboard image from: {grafana_dashboard_url}\n\n"
+                       f"Analysis:\n{analysis_result}")
+    slack_response = send_slack_file_to_thread(slack_token, channel_id, thread_ts, image_path, initial_comment)
 
-            # Download Grafana image
-            image_path = download_grafana_image(render_url, grafana_api_key, panel['id'])
+    # Extract relevant information from the Slack response
+    response_info = extract_slack_response_info(slack_response)
+    print("Slack response:")
+    print(json.dumps(response_info, indent=2))
 
-            # Analyze the image using the vision model
-            analysis_result = analyze_image_with_vision_model(image_path)
-
-            # Send image to Slack thread
-            initial_comment = (f"Grafana dashboard image for panel '{panel['title']}' from: {grafana_dashboard_url}\n\n"
-                               f"Analysis:\n{analysis_result}")
-            slack_response = send_slack_file_to_thread(slack_token, channel_id, thread_ts, image_path, initial_comment)
-
-            # Extract relevant information from the Slack response
-            response_info = extract_slack_response_info(slack_response)
-            print(f"Slack response for panel {panel['id']}:")
-            print(json.dumps(response_info, indent=2))
-
-            # Clean up the downloaded image
-            os.remove(image_path)
-            print(f"Temporary image file removed for panel {panel['id']}")
+    # Clean up the downloaded image
+    os.remove(image_path)
+    print("Temporary image file removed")
 
     print("Processing complete")
 

@@ -206,7 +206,7 @@ def main():
 if __name__ == "__main__":
     main()
 
-' --grafana_dashboard_url "$grafana_dashboard_url" --alert_subject "$alert_subject"
+'
 """,
     secrets=[
         "SLACK_API_TOKEN", 

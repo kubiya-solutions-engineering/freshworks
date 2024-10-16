@@ -18,8 +18,6 @@ python /tmp/grafana.py --grafana_dashboard_url "$grafana_dashboard_url" --alert_
     secrets=[
         "SLACK_API_TOKEN", 
         "GRAFANA_API_KEY", 
-        "OPENAI_API_KEY",
-        "OPENAI_API_BASE",
         "VISION_LLM_KEY"
     ],
     env=[

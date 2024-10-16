@@ -6,6 +6,7 @@ from slack_sdk.errors import SlackApiError
 import json
 from litellm import completion
 import base64
+from PIL import Image
 
 def generate_grafana_api_url(grafana_dashboard_url):
     print(f"Received Grafana URL: {grafana_dashboard_url}")
@@ -87,35 +88,51 @@ def extract_slack_response_info(response):
     }
 
 def analyze_image_with_vision_model(image_path):
+    # Open the image
+    image = Image.open(image_path)
+
+    # Resize the image (e.g., to 800x800)
+    image = image.resize((800, 800))
+
+    # Save the resized image
+    image.save(image_path)
+
+    # Encode the image
     with open(image_path, "rb") as image_file:
-        encoded_image = base64.b64encode(image_file.read()).decode('utf-8')
+        base64_image = base64.b64encode(image_file.read()).decode('utf-8')
 
-    messages = [
-        {
-            "role": "user",
-            "content": [
-                {
-                    "type": "text",
-                    "text": "Analyze this Grafana panel image. Identify any abnormalities or significant spikes in the data. Provide a brief summary of your observations."
-                },
-                {
-                    "type": "image_url",
-                    "image_url": f"data:image/png;base64,{encoded_image}"
-                }
-            ]
-        }
-    ]
+    llm_key = os.environ["VISION_LLM_KEY"]
+    llm_base_url = os.environ["VISION_LLM_BASE_URL"]
 
+    # openai call
     try:
         response = completion(
-            model="gpt-4-vision-preview",
-            messages=messages,
-            api_base=os.environ.get("OPENAI_API_BASE"),
-            api_key=os.environ.get("OPENAI_API_KEY")
+            model="openai/gpt-4o",
+            api_key=llm_key,
+            base_url=llm_base_url,
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": "Analyze this Grafana panel image. Identify any abnormalities or significant spikes in the data. Provide a brief summary of your observations."},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/png;base64,{base64_image}"
+                            },
+                        },
+                    ],
+                }
+            ],
         )
+    except Exception as e:
+        print(f"Error for llm: {e}")
+        return "Unable to analyze the image due to an error."
+
+    try:
         return response.choices[0].message.content
     except Exception as e:
-        print(f"Error analyzing image with vision model: {e}")
+        print(f"Failed to get content from response: {e}")
         return "Unable to analyze the image due to an error."
 
 # Access environment variables

@@ -11,7 +11,7 @@ get_grafana_image_and_send_slack_thread = Tool(
     type="docker",
     image="python:3.11-bullseye",
     content="""
-pip install requests slack_sdk litellm > /dev/null 2>&1
+pip install slack_sdk requests==2.32.3 litellm==1.49.5 pillow==11.0.0 > /dev/null 2>&1
 
 python /tmp/grafana.py --grafana_dashboard_url "$grafana_dashboard_url" --alert_subject "$alert_subject"
 """,
@@ -19,11 +19,13 @@ python /tmp/grafana.py --grafana_dashboard_url "$grafana_dashboard_url" --alert_
         "SLACK_API_TOKEN", 
         "GRAFANA_API_KEY", 
         "OPENAI_API_KEY",
-        "OPENAI_API_BASE"
+        "OPENAI_API_BASE",
+        "VISION_LLM_KEY"
     ],
     env=[
         "SLACK_THREAD_TS", 
-        "SLACK_CHANNEL_ID"
+        "SLACK_CHANNEL_ID",
+        "VISION_LLM_BASE_URL"
     ],
     args=[
         Arg(
